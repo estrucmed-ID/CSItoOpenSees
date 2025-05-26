@@ -1,0 +1,13 @@
+openseespy
+vfo
+opsvis
+opstool
+xarray
+opseestools
+pandas
+numpy<2
+matplotlib
+PyPDF2
+reportlab
+plotly
+openpyxl

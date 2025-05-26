@@ -1,0 +1,46 @@
+
+/* MODIFICACIONES EN LA BARRA DE NAVEGACION */
+.nav-link.active i {
+    color: #ffffff !important;  
+}
+.nav-link i {
+    color: #767171;
+    transition: color 0.3s ease;
+}
+.nav-link:hover i {
+    color: #75B72A;
+}
+.nav-pills .nav-link.active {
+    background-color: #75B72A !important;  
+    border-radius: 10px;
+}
+
+/* TIPOS DE LETRA COMUNES*/
+
+.titulo-header {
+    font-size: 35px;
+    color: #6D844C;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.container-title {
+    font-size: 25px;
+    color: #7BB54F;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.container-subtitle {
+    font-size: 22px;
+    color: #000000;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.container-subtitle2 {
+    font-size: 20px;
+    color: #3c3a3a;
+    font-weight: 700;
+    margin-bottom: 5px;
+}

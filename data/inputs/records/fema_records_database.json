@@ -1,0 +1,266 @@
+{
+  "0": {
+    "record_name": "GM01",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM01.txt",
+    "time_increment": 0.01,
+    "steps_number": 3000
+  },
+  "1": {
+    "record_name": "GM02",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM02.txt",
+    "time_increment": 0.01,
+    "steps_number": 3000
+  },
+  "2": {
+    "record_name": "GM03",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM03.txt",
+    "time_increment": 0.01,
+    "steps_number": 2000
+  },
+  "3": {
+    "record_name": "GM04",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM04.txt",
+    "time_increment": 0.01,
+    "steps_number": 2000
+  },
+  "4": {
+    "record_name": "GM05",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM05.txt",
+    "time_increment": 0.01,
+    "steps_number": 5590
+  },
+  "5": {
+    "record_name": "GM06",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM06.txt",
+    "time_increment": 0.01,
+    "steps_number": 5590
+  },
+  "6": {
+    "record_name": "GM07",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM07.txt",
+    "time_increment": 0.01,
+    "steps_number": 4535
+  },
+  "7": {
+    "record_name": "GM08",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM08.txt",
+    "time_increment": 0.01,
+    "steps_number": 4535
+  },
+  "8": {
+    "record_name": "GM09",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM09.txt",
+    "time_increment": 0.01,
+    "steps_number": 9995
+  },
+  "9": {
+    "record_name": "GM10",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM10.txt",
+    "time_increment": 0.01,
+    "steps_number": 9995
+  },
+  "10": {
+    "record_name": "GM11",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM11.txt",
+    "time_increment": 0.005,
+    "steps_number": 7810
+  },
+  "11": {
+    "record_name": "GM12",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM12.txt",
+    "time_increment": 0.005,
+    "steps_number": 7810
+  },
+  "12": {
+    "record_name": "GM13",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM13.txt",
+    "time_increment": 0.01,
+    "steps_number": 4100
+  },
+  "13": {
+    "record_name": "GM14",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM14.txt",
+    "time_increment": 0.01,
+    "steps_number": 4100
+  },
+  "14": {
+    "record_name": "GM15",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM15.txt",
+    "time_increment": 0.01,
+    "steps_number": 4100
+  },
+  "15": {
+    "record_name": "GM16",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM16.txt",
+    "time_increment": 0.01,
+    "steps_number": 4100
+  },
+  "16": {
+    "record_name": "GM17",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM17.txt",
+    "time_increment": 0.005,
+    "steps_number": 5440
+  },
+  "17": {
+    "record_name": "GM18",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM18.txt",
+    "time_increment": 0.005,
+    "steps_number": 5440
+  },
+  "18": {
+    "record_name": "GM19",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM19.txt",
+    "time_increment": 0.05,
+    "steps_number": 6000
+  },
+  "19": {
+    "record_name": "GM20",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM20.txt",
+    "time_increment": 0.05,
+    "steps_number": 6000
+  },
+  "20": {
+    "record_name": "GM21",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM21.txt",
+    "time_increment": 0.02,
+    "steps_number": 2200
+  },
+  "21": {
+    "record_name": "GM22",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM22.txt",
+    "time_increment": 0.02,
+    "steps_number": 2200
+  },
+  "22": {
+    "record_name": "GM23",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM23.txt",
+    "time_increment": 0.0025,
+    "steps_number": 11190
+  },
+  "23": {
+    "record_name": "GM24",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM24.txt",
+    "time_increment": 0.0025,
+    "steps_number": 11190
+  },
+  "24": {
+    "record_name": "GM25",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM25.txt",
+    "time_increment": 0.005,
+    "steps_number": 7995
+  },
+  "25": {
+    "record_name": "GM26",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM26.txt",
+    "time_increment": 0.005,
+    "steps_number": 7995
+  },
+  "26": {
+    "record_name": "GM27",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM27.txt",
+    "time_increment": 0.005,
+    "steps_number": 7990
+  },
+  "27": {
+    "record_name": "GM28",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM28.txt",
+    "time_increment": 0.005,
+    "steps_number": 7990
+  },
+  "28": {
+    "record_name": "GM29",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM29.txt",
+    "time_increment": 0.02,
+    "steps_number": 2680
+  },
+  "29": {
+    "record_name": "GM30",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM30.txt",
+    "time_increment": 0.02,
+    "steps_number": 2300
+  },
+  "30": {
+    "record_name": "GM31",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM31.txt",
+    "time_increment": 0.005,
+    "steps_number": 8000
+  },
+  "31": {
+    "record_name": "GM32",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM32.txt",
+    "time_increment": 0.005,
+    "steps_number": 8000
+  },
+  "32": {
+    "record_name": "GM33",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM33.txt",
+    "time_increment": 0.01,
+    "steps_number": 2230
+  },
+  "33": {
+    "record_name": "GM34",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM34.txt",
+    "time_increment": 0.01,
+    "steps_number": 2230
+  },
+  "34": {
+    "record_name": "GM35",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM35.txt",
+    "time_increment": 0.02,
+    "steps_number": 1800
+  },
+  "35": {
+    "record_name": "GM36",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM36.txt",
+    "time_increment": 0.02,
+    "steps_number": 1800
+  },
+  "36": {
+    "record_name": "GM37",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM37.txt",
+    "time_increment": 0.005,
+    "steps_number": 18000
+  },
+  "37": {
+    "record_name": "GM38",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM38.txt",
+    "time_increment": 0.005,
+    "steps_number": 18000
+  },
+  "38": {
+    "record_name": "GM39",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM39.txt",
+    "time_increment": 0.005,
+    "steps_number": 18000
+  },
+  "39": {
+    "record_name": "GM40",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM40.txt",
+    "time_increment": 0.005,
+    "steps_number": 18000
+  },
+  "40": {
+    "record_name": "GM41",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM41.txt",
+    "time_increment": 0.01,
+    "steps_number": 2800
+  },
+  "41": {
+    "record_name": "GM42",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM42.txt",
+    "time_increment": 0.01,
+    "steps_number": 2800
+  },
+  "42": {
+    "record_name": "GM43",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM43.txt",
+    "time_increment": 0.005,
+    "steps_number": 7270
+  },
+  "43": {
+    "record_name": "GM44",
+    "file_path": "C:/Users/alein/OneDrive/00_EstrucMed/backedn_csitoopensees/backend_prmcr-copia/data/temporary/fema_records/GM44.txt",
+    "time_increment": 0.005,
+    "steps_number": 7270
+  }
+}
