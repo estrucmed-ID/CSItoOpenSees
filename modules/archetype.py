@@ -76,15 +76,19 @@ class ModelBuilder:
         self.AS_frames = data_file['TABLE:  "FRAME ASSIGNMENTS - SECTIONS"']
         self.AS_axes = data_file['TABLE:  "FRAME ASSIGNMENTS - LOCAL AXES"']
         self.AS_offsets = data_file['TABLE:  "FRAME ASSIGNMENTS - OFFSETS"']
+        self.AS_pier = data_file['TABLE:  "SHELL ASSIGNMENTS - PIER SPANDR"']
         
         # Material properties
         self.material = data_file['TABLE:  "MATERIAL PROPERTIES - CONCRETE"']
         self.C_rebar = data_file['TABLE:  "CONCRETE COLUMN REBAR DATA"']
         self.B_rebar = data_file['TABLE:  "CONCRETE BEAM REBAR DATA"']
+        self.pier_rebar = data_file['TABLE:  "SHEAR WALL PIER SUMMARY - ACI 3"']
         
         # Sections
         self.SC_shells = data_file['TABLE:  "SHELL SECTIONS - SLAB"']
         self.SC_frames = data_file['TABLE:  "FRAME SECTIONS"']
+        self.SC_walls = data_file['TABLE:  "SHELL SECTIONS - WALL"']
+        self.SC_piers = data_file['TABLE:  "PIER SECTION PROPERTIES"']
         
         # Cargas
         self.LD_shells = data_file['TABLE:  "SHELL LOADS - UNIFORM"']
@@ -96,6 +100,7 @@ class ModelBuilder:
         
         # Base reactions and drift analisis
         self.column_forces = data_file['TABLE:  "COLUMN FORCES"']
+        self.pier_forces = data_file['TABLE:  "PIER FORCES"']
         self.functions = data_file['TABLE:  "RS FUNCTION - COLOMBIA NSR-10"']
         self.displacements = data_file['TABLE:  "DIAPGRAGM CENTER OF MASS DISPLACEMENT"']
         
@@ -120,10 +125,16 @@ class ModelBuilder:
         joints = self.OE_joints[self.OE_joints["Object Type"] == "Joint"]
      
         # Get all joints that are part of frames (Joint I and Joint J)
-        unique_jframes = pd.concat([
-            self.OE_frames['Joint I'], 
-            self.OE_frames['Joint J']
-        ]).unique()
+        # ** Modificacion considerando que el modelo tiene frames **
+        alone_joints1 = None
+        if isinstance(self.OE_frames, pd.DataFrame):
+            unique_jframes = pd.concat([
+                self.OE_frames['Joint I'], 
+                self.OE_frames['Joint J']
+            ]).unique()
+            
+            # Identify joints that are not in frame elements
+            alone_joints1 = [x for x in joints['Element Label'].tolist() if x not in unique_jframes]
      
         # Get all joints that are part of shell elements (4-node shells)
         unique_jshells = pd.concat([
@@ -133,14 +144,14 @@ class ModelBuilder:
             self.OE_shells['Joint 4']
         ]).unique()
      
-        # Identify joints that are not in frame elements
-        alone_joints1 = [x for x in joints['Element Label'].tolist() if x not in unique_jframes]
-     
         # Identify joints that are not in shell elements
         alone_joints2 = [x for x in joints['Element Label'].tolist() if x not in unique_jshells]
      
         # Find joints that are not connected to any element (not in frames nor shells)
-        drop_joints = [x for x in alone_joints1 if x in alone_joints2]
+        if alone_joints1:
+            drop_joints = [x for x in alone_joints1 if x in alone_joints2]
+        else:
+            drop_joints = alone_joints2
      
         # Remove unused joints from the DataFrame
         joints = joints[~joints['Element Label'].isin(drop_joints)]
@@ -257,14 +268,28 @@ class ModelBuilder:
         self.material.rename(columns={'Name': 'Material'}, inplace=True)
     
         # Merge frame sections with material properties (Fc and G)
-        SC_frames = pd.merge(
-            self.SC_frames, 
-            self.material[['Material', 'Fc', 'G']],
-            on='Material',
-            how='inner'
-        )
-        SC_frames.rename(columns={'Name': 'Section'}, inplace=True)
-    
+        # ** Modificacion considerando que el modelo tiene frames **
+        SC_frames = 'Table Not Found'
+        if isinstance(self.SC_frames, pd.DataFrame):
+            SC_frames = pd.merge(
+                self.SC_frames, 
+                self.material[['Material', 'Fc', 'G']],
+                on='Material',
+                how='inner'
+            )
+            SC_frames.rename(columns={'Name': 'Section'}, inplace=True)
+            
+        # ** Modificacion considerando que el modelo tiene walls **
+        SC_walls = 'Table Not Found'
+        if isinstance(self.SC_walls, pd.DataFrame):
+            SC_walls = pd.merge(
+                self.SC_walls, 
+                self.material[['Material', 'Fc', 'G']],
+                on='Material',
+                how='inner'
+            )
+            SC_walls.rename(columns={'Name': 'Section'}, inplace=True)
+        
         # Merge shell (slab) sections with material strength (Fc only)
         SC_shells = pd.merge(
             self.SC_shells, 
@@ -276,9 +301,11 @@ class ModelBuilder:
     
         # Store the processed section tables in the internal dictionary
         self.dict['TABLE:  "FRAME SECTIONS"'] = SC_frames
+        self.dict['TABLE:  "SHELL SECTIONS - WALL"'] = SC_walls
         self.dict['TABLE:  "SHELL SECTIONS - SLAB"'] = SC_shells
         
         self.SC_frames = SC_frames
+        self.SC_walls = SC_walls
         self.SC_shells = SC_shells
         
     def _assgNonlinearMaterials(self, ed_type):
@@ -295,35 +322,170 @@ class ModelBuilder:
             None. Updates internal lists of material tags (Unconf_Tag, Conf_Tag, Steel_Tag).
         """
     
-        Unconf_Tag, Conf_Tag, Steel_Tag = [], [], []
-    
-        # Iterate over all frame sections
-        for index in range(len(self.SC_frames)):
-            aa = self.SC_frames.iloc[index]
-            fc = aa['Fc'] / 1000  # Convert f'c from kPa to MPa
-    
-            # Define unique tags for materials
-            Tag_Steel = index
-            Tag_UnConf = len(self.SC_frames) + index
-            Tag_Conf = len(self.SC_frames) * 2 + index
-    
-            # Call utility to define materials and retrieve their tags
-            unctag, conftag, steeltag = optools_ut.col_materials(
-                fcn = fc,
-                detailing = ed_type, 
-                steeltag = Tag_Steel,
-                unctag = Tag_UnConf, 
-                conftag = Tag_Conf
-            )
-    
-            # Store material tags
-            Unconf_Tag.append(unctag)
-            Conf_Tag.append(conftag)
-            Steel_Tag.append(steeltag)
+        def generate_nonlinear_materials(df):
+            Unconf_Tag, Conf_Tag, Steel_Tag = [], [], []
+            
+            for index in range(len(df)):
+                aa = df.iloc[index]
+                fc = aa['Fc'] / 1000  # Convert f'c from kPa to MPa
         
-        self.SC_frames['Steel_Label'] = Steel_Tag
-        self.SC_frames['UnConf_Label'] = Unconf_Tag
-        self.SC_frames['Conf_Label'] = Conf_Tag
+                # Define unique tags for materials
+                Tag_Steel = index
+                Tag_UnConf = len(df) + index
+                Tag_Conf = len(df) * 2 + index
+        
+                # Call utility to define materials and retrieve their tags
+                unctag, conftag, steeltag = optools_ut.col_materials(
+                    fcn = fc,
+                    detailing = ed_type, 
+                    steeltag = Tag_Steel,
+                    unctag = Tag_UnConf, 
+                    conftag = Tag_Conf
+                )
+        
+                # Store material tags
+                Unconf_Tag.append(unctag)
+                Conf_Tag.append(conftag)
+                Steel_Tag.append(steeltag)
+            
+            return Unconf_Tag, Conf_Tag, Steel_Tag
+    
+        # Iterate over all frame sections (if their exist in the model)
+        if isinstance(self.SC_frames, pd.DataFrame):
+            Unconf_Tag, Conf_Tag, Steel_Tag = generate_nonlinear_materials(self.SC_frames)
+            self.SC_frames['Steel_Label'] = Steel_Tag
+            self.SC_frames['UnConf_Label'] = Unconf_Tag
+            self.SC_frames['Conf_Label'] = Conf_Tag
+        
+        # Iterate over all wall sections (if their exist in the model)
+        if isinstance(self.SC_walls, pd.DataFrame):
+            Unconf_Tag, Conf_Tag, Steel_Tag = generate_nonlinear_materials(self.SC_walls)
+            self.SC_walls['Steel_Label'] = Steel_Tag
+            self.SC_walls['UnConf_Label'] = Unconf_Tag
+            self.SC_walls['Conf_Label'] = Conf_Tag
+    
+    def _assgWallElasticMaterials(self):
+        
+        # Slabs and Walls Joint information 
+        OE_slabs = self.OE_shells[self.OE_shells['Area Type'] == 'Floor']
+        OE_walls = self.OE_shells[self.OE_shells['Area Type'] == 'Wall']
+        
+        # Assing to each slab object it's respective section and properties
+        AS_shells = self.AS_shells.copy()
+        AS_shells.rename(columns = {'Unique Name':'Element Label'}, inplace = True)
+        SC_shells = self.SC_shells.copy()
+        
+        OE_slabs = pd.merge(OE_slabs, AS_shells[['Element Label', 'Section']], on = 'Element Label', how = 'inner')
+        OE_slabs = pd.merge(OE_slabs, SC_shells, on = 'Section', how = 'inner')
+        
+        # Assing to each wall object it's respective section and properties
+        SC_walls = self.SC_walls.copy()
+
+        OE_walls = pd.merge(OE_walls, AS_shells[['Element Label', 'Section']], on = 'Element Label', how = 'inner')
+        OE_walls = pd.merge(OE_walls, SC_walls, on = 'Section', how = 'inner')
+        
+        # Store the coordinates of nodes of each wall
+        nodesW = []
+        for i, row in OE_walls.iterrows():
+            p1 = int(row['Joint 1'])
+            p2 = int(row['Joint 2'])
+            p3 = int(row['Joint 3'])
+            p4 = int(row['Joint 4'])
+            nodesW.append([p1,p2,p3,p4])
+        
+        # Store list whit the order of the wall nodes and lenght of the walls
+        order_list, lenght_list = [], []
+        for nodes in nodesW:
+            orientation, lenght, node = self.wallsOrientation(nodes)
+            lenght_list.append(lenght) # Wall lenght
+            order_list.append(node)    # Wall orientation
+        
+        OE_walls['Nodes Orientation'] = order_list # Add to the dataframe the walls orientation
+        OE_walls['Nodes Lenght'] = lenght_list     # Add to the dataframe the walls length
+        
+        tag_initial = int(min(OE_slabs['Slab_Label']))
+        tagshear_list = []
+        for i, row in OE_walls.iterrows():
+            fc = row['Fc']
+            E = 1000*4400*(fc/1000)**0.5
+            tagshear = int(tag_initial-(1+i))
+            G = E*0.4
+            ops.uniaxialMaterial('Elastic', tagshear, G*1.5)
+            tagshear_list.append(tagshear)
+        
+        OE_walls['Shear_Label'] = tagshear_list
+        
+        # Store the processed section tables in the internal dictionary
+        self.dict['TABLE:  "OBJECTS AND ELEMENTS - WALL"'] = OE_walls
+        self.dict['TABLE:  "OBJECTS AND ELEMENTS - SLAB"'] = OE_slabs
+        
+        self.OE_walls = OE_walls
+        self.OE_slabs = OE_slabs
+        self.GN_Slabs = self.OE_slabs
+        
+        self.dict['TABLE:  "SLAB GENERATION"'] = self.GN_Slabs
+        
+    def wallsOrientation(self, nodes):
+        
+        order = []
+        nodeA = nodes[0]
+        nodeB = nodes[1]
+        nodeC = nodes[2]
+        nodeD = nodes[3]
+        CA = ops.nodeCoord(nodeA)
+        CB = ops.nodeCoord(nodeB)
+        CC = ops.nodeCoord(nodeC)
+        CD = ops.nodeCoord(nodeD)
+        # en la versión 17 de ETABS, van de primero los nodos de abajo y de segundo los de arriba
+        if CA[0] == CB[0]:
+            orient = 2
+            longitud = abs(CB[1] - CA[1])
+            # long.append(longitud)
+            if CA[1] < CB[1]:
+                order.append(nodeA)
+                order.append(nodeB)
+                if CC[1] < CD[1]:
+                    order.append(nodeD)
+                    order.append(nodeC)
+                elif CD[1] < CC[1]:
+                    order.append(nodeC)
+                    order.append(nodeD)
+                    
+            if CB[1] < CA[1]:
+                order.append(nodeB)
+                order.append(nodeA)
+                if CC[1] < CD[1]:
+                    order.append(nodeD)
+                    order.append(nodeC)
+                elif CD[1] < CC[1]:
+                    order.append(nodeC)
+                    order.append(nodeD)
+            
+        elif CA[1] == CB[1]:
+            orient = 1
+            longitud = abs(CB[0] - CA[0])
+            
+            if CA[0] < CB[0]:
+                order.append(nodeA)
+                order.append(nodeB)
+                if CC[0] < CD[0]:
+                    order.append(nodeD)
+                    order.append(nodeC)
+                elif CD[0] < CC[0]:
+                    order.append(nodeC)
+                    order.append(nodeD)
+                    
+            if CB[0] < CA[0]:
+                order.append(nodeB)
+                order.append(nodeA)
+                if CC[0] < CD[0]:
+                    order.append(nodeD)
+                    order.append(nodeC)
+                elif CD[0] < CC[0]:
+                    order.append(nodeC)
+                    order.append(nodeD)
+        
+        return orient,longitud,order
     
     # Assigns elastic membrane plate sections
     def _generateElasticSlabs(self, shell_craking):
@@ -429,10 +591,10 @@ class ModelBuilder:
             
         # Add beam tags to the DataFrame
         self.B_rebar['sectag'] = beamsectags
-
+        
         self.SC_frames = pd.concat([self.C_rebar[['Section', 't3', 't2', 'sectag', 'Area']],self.B_rebar[['Section', 't3', 't2', 'sectag', 'Area']]])
-
-    
+        
+        
     # Generates elastic section definitions for frame elements
     def _generateElasticFrames(self, npint):
         """
@@ -598,6 +760,157 @@ class ModelBuilder:
         self.dict['TABLE:  "FRAME GENERATION"'] = self.GN_frames
         self.dict['TABLE:  "SLAB GENERATION"'] = self.GN_Slabs
         self.dict['TABLE:  "FRAME ASSIGNMENTS - OFFSETS"'] = self.AS_offsets
+        
+    def _consolidateInfoPiers(self):
+        
+        AS_pier = self.AS_pier.copy()
+        SC_piers = self.SC_piers.copy()
+        OE_walls = self.OE_walls.copy()
+        pier_rebar = self.pier_rebar.copy()
+        
+        # Store in pier assignments the pier properties
+        AS_pier = pd.merge(AS_pier, SC_piers[['Story','Pier','# Area Objects','Width Bottom']], on=['Story', 'Pier'], how='left')
+        AS_pier.rename(columns={'Unique Name':'Element Label'}, inplace = True)
+        
+        # Include on wall objects the pier assignments
+        OE_walls = pd.merge(OE_walls, AS_pier[['Element Label','Pier','# Area Objects','Width Bottom']], on='Element Label',how='inner')
+        
+        # Clean and filter the pier rebar
+        pier_rebar.rename(columns={'Pier Label':'Pier'}, inplace=True) 
+        pier_rebar =  pier_rebar[pier_rebar['Station'] == 'Bottom']
+        pier_rebar = pier_rebar.fillna(0)
+        pier_rebar['Cuantia_Val'] = pier_rebar['Required Reinf']/100
+        
+        OE_walls = pd.merge(OE_walls, pier_rebar[['Story','Pier','Cuantia_Val','Boundary Zone Left','Boundary Zone Right']],on=['Story', 'Pier'],how='left')
+        
+        OE_WallRebar = self.Wall_Rebar_Data_ETABS(OE_walls)
+        df_dividido = self.dividir_ancho_num_macro_ETABS(OE_walls, OE_WallRebar)
+        OE_walls = pd.merge(OE_walls, df_dividido, on=['Story','Area Label'], how='left')
+        
+        self.dict['TABLE:  "OBJECTS AND ELEMENTS - WALL"'] = OE_walls
+        self.OE_walls = OE_walls
+    
+    def Wall_Rebar_Data_ETABS(self, df_OEWall):
+        
+        num_macro, ancho, concreto, acero, cuantia, espesor, story, pier = [], [], [], [], [], [], [], []
+        for index in range(len(df_OEWall)):
+            
+            aa = df_OEWall.iloc[index]
+            storyval = aa['Story']
+            pierval = aa['Pier']
+            # cuando no hay elemento de borde
+            if aa['Boundary Zone Left'] == 0 and aa['Boundary Zone Right'] == 0:
+                nummacro = int(aa['Width Bottom'])*2
+                anchoval = [float(aa['Width Bottom']/nummacro)]*nummacro
+                concval = [int(aa['UnConf_Label'])]*nummacro
+                aceroval = [int(aa['Steel_Label'])]*nummacro
+                cuantiaval = [float(aa['Cuantia_Val'])]*nummacro
+                espeval = [float(aa['Thickness'])]*nummacro
+                nummacro = [1]*int(aa['Width Bottom'])*2
+                
+            # cuando hay elemento de borde
+            elif aa['Boundary Zone Left'] > 0 or aa['Boundary Zone Right'] > 0:
+                nummacro = int(aa['Width Bottom'])*2
+                anchoval = [0]*nummacro
+                anchoval[0] = float(aa['Boundary Zone Left'])
+                anchoval[-1] = float(aa['Boundary Zone Right'])
+                concval = [0]*nummacro
+                concval[0] = int(aa['Conf_Label'])
+                concval[-1] = int(aa['Conf_Label'])
+                for index2 in range(1,len(anchoval)-1):
+                    anchoval[index2] = float((aa['Width Bottom']-(aa['Boundary Zone Left']+aa['Boundary Zone Right']))/(nummacro-2))    
+                    concval[index2] = int(aa['UnConf_Label'])
+                aceroval = int(aa['Steel_Label']*nummacro)
+                cuantiaval = float([aa['Cuantia_Val']]*nummacro)
+                espeval = [float(aa['Thickness'])]*nummacro
+                nummacro = [1]*int(aa['Width Bottom'])*2
+                
+            num_macro.append(nummacro)
+            ancho.append(anchoval)
+            concreto.append(concval)
+            acero.append(aceroval)
+            cuantia.append(cuantiaval)
+            espesor.append(espeval)
+            story.append(storyval)
+            pier.append(pierval)
+            
+            # Finalmente ensamblamos el diccionario
+            data = {
+                'Story': story,
+                'Num_Macro': num_macro,
+                'Pier': pier,
+                'Ancho': ancho,
+                'Concreto':concreto,
+                'Acero':acero,
+                'Cuantia':cuantia
+            }
+            df_WallRebar = pd.DataFrame(data)
+                
+        return df_WallRebar
+    
+    def dividir_ancho_num_macro_ETABS(self, df, df_ancho):
+        
+        resultado = []
+        for story, group in df.groupby(['Story', 'Pier']):
+            
+            thickness = float(group['Thickness'].values[0])
+            
+            # Extraemos la lista Ancho y Num_Macro correspondiente al grupo actual (Story, Pier)
+            ancho_lista = df_ancho[(df_ancho['Story'] == story[0]) & (df_ancho['Pier'] == story[1])]['Ancho'].values[0]
+            num_macro_lista = df_ancho[(df_ancho['Story'] == story[0]) & (df_ancho['Pier'] == story[1])]['Num_Macro'].values[0]
+            concreto_lista = df_ancho[(df_ancho['Story'] == story[0]) & (df_ancho['Pier'] == story[1])]['Concreto'].values[0]
+            acero_lista = df_ancho[(df_ancho['Story'] == story[0]) & (df_ancho['Pier'] == story[1])]['Acero'].values[0]
+            cuantia_lista = df_ancho[(df_ancho['Story'] == story[0]) & (df_ancho['Pier'] == story[1])]['Cuantia'].values[0]
+            
+            thickness_list = []
+            for index in range(len(num_macro_lista)):
+                thickness_list.append(thickness)
+                
+            # Creamos un índice para recorrer la lista Ancho y Num_Macro
+            index = 0
+            nuevo_ancho, nuevo_num_macro, nuevo_concreto, nuevo_acero, nuevo_cuantia, nuevo_thickness = [], [], [], [], [], []
+
+            for _, row in group.iterrows():
+                longitud_muro = row['Nodes Lenght']
+                suma_ancho = 0
+                muro_ancho,muro_num_macro,muro_concreto,muro_acero,muro_cuantia, muro_thickness= [], [], [], [], [], []
+
+                # Extraemos los valores de Ancho y Num_Macro hasta que la suma iguale la longitud del muro
+                while suma_ancho < longitud_muro and index < len(ancho_lista):
+                    muro_ancho.append(ancho_lista[index])
+                    muro_num_macro.append(num_macro_lista[index])
+                    muro_concreto.append(concreto_lista[index])
+                    muro_acero.append(acero_lista[index])
+                    muro_cuantia.append(cuantia_lista[index])
+                    muro_thickness.append(thickness_list[index])
+                    suma_ancho += ancho_lista[index]
+                    index += 1
+
+                # Guardamos la lista de Ancho y Num_Macro para el muro actual
+                nuevo_ancho.append(muro_ancho)
+                nuevo_num_macro.append(muro_num_macro)
+                nuevo_concreto.append(muro_concreto)
+                nuevo_acero.append(muro_acero)
+                nuevo_cuantia.append(muro_cuantia)
+                nuevo_thickness.append(muro_thickness)
+
+            # Añadimos los resultados de este Story y Pier a la lista
+            for i, (_, row) in enumerate(group.iterrows()):
+                resultado.append({
+                    'Story': row['Story'],
+                    'Pier': row['Pier'],
+                    'Area Label': row['Area Label'],
+                    'long': row['Nodes Lenght'],
+                    'Ancho': nuevo_ancho[i],
+                    'Num_Macro': nuevo_num_macro[i],
+                    'Concreto':nuevo_concreto[i],
+                    'Acero':nuevo_acero[i],
+                    'Cuantia':nuevo_cuantia[i],
+                    'Thickness_List':nuevo_thickness[i]
+                })
+                
+        # Convertimos el resultado en un DataFrame
+        return pd.DataFrame(resultado)
     
     # Creates elastic/non-linear frame elements
     def _genElements(self, model_type):
@@ -740,7 +1053,28 @@ class ModelBuilder:
         # Store the shell element tags in the genslabs DataFrame
         self.GN_Slabs['Slab_Tags'] = slabtags
         
-    
+    def _genWalls(self):
+        
+        element_labels = []
+        for i, row in self.OE_walls.iterrows():
+            elelabel = int(row['Element Label'])
+            node_ele = row['Nodes Orientation']
+            t = row['Thickness_List']
+            width = row['Ancho']
+            rho2 = row['Cuantia']
+            concrete2 = row['Concreto']
+            steel2 = row['Acero']
+            tagshear2 = int(row['Shear_Label'])
+            num_fib = int(np.sum(row['Num_Macro']))
+            
+            ops.element('MVLEM_3D',int(elelabel),*node_ele,num_fib,'-thick',*t,'-width',*width,'-rho',*rho2,'-matConcrete',*concrete2,'-matSteel',*steel2,'-matShear',tagshear2)
+            element_labels.append(int(elelabel))
+        
+        self.OE_walls['Element_Label'] = element_labels
+        self.GN_frames = self.OE_walls
+        
+        self.dict['TABLE:  "WALL GENERATION"'] = self.GN_frames
+        
     def _calculate_beamloads(self, load_case):
         
         self.slabloads = self.data_file['TABLE:  "SHELL LOADS - UNIFORM"']
@@ -1574,4 +1908,53 @@ class NONLinearModelBuilder(ModelBuilder):
         self._appLoads()                            # Applies gravitational loads
         self._massDiaph()                           # Creates mass center nodes and rigid diaphragms for each floor in the model
 
+class ElasticModelBuilderWCMF(ModelBuilder):
+    
+    def genInitialElasticModel(self, main_path, model_type = 'EM', load_case = '(0) 1CM + 0.25CV', npint = 5, shell_craking = 1):
+        self.outputs_model = os.path.abspath(os.path.join(main_path, 'outputs', 'opensees_models'))
         
+        ops.wipe()
+        ops.model('basic', '-ndm', 3, '-ndf', 6)
+
+        tqdm.write(" 🔄 Generando el arquetipo del modelo elástico ...") 
+        self._debbugingJoints()
+        self._genNodes()
+        self._debugging_restr()
+        self._fixNodes()
+        self._debugging_materials()
+        self._assgNonlinearMaterials('DMO')
+        self._generateElasticSlabs()
+        self._assgWallElasticMaterials()
+        self._consolidateInfoPiers()
+        self._genWalls()
+        self._genSlabs()
+        tqdm.write(" ✅​ Arquetipo generado ")
+
+#%% PRUEBAS
+# # Esto genera un json para no sobreescribir la data
+# main_path = os.getcwd()
+# folder_data = os.path.join(main_path, 'data', 'temporary', 'json')
+# ut.import_csi_data(main_path, 'input_model_0011', folder_data)
+
+# data_file = ut.process_json_data(folder_data, 'model_information')
+
+# #%% PRUEBAS GENERAR MODELO
+# main_class = ModelBuilder(data_file)
+# # Generar modelo base
+# ops.wipe()
+# ops.model('basic', '-ndm', 3, '-ndf', 6)
+# # Empezar a generar el modelo con las funciones -- aplicables para muros, porticos, combinados
+# main_class._debbugingJoints()
+# main_class._genNodes()
+# main_class._debugging_restr()
+# main_class._fixNodes()
+# main_class._debugging_materials()
+# main_class._assgNonlinearMaterials('DMO')
+# main_class._generateElasticSlabs()
+# main_class._assgWallElasticMaterials()
+# main_class._consolidateInfoPiers()
+# main_class._genWalls()
+# main_class._genSlabs()
+
+# import vfo.vfo as vfo
+# vfo.plot_model()

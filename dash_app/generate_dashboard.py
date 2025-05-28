@@ -25,16 +25,21 @@ modules_path = os.path.join(main_path_default, 'modules')
 # Añadir rutas
 sys.path.append(modules_path)
 
-#%% Cargar resultados del json
+#%% ==> CARGAR RESULTADOS DE TODOS LOS GENERADORES
+    
 path_json = os.path.join(report_path, 'archetype_results_report.json')
 with open(path_json, 'r') as f:
     data = json.load(f)
 
-#%% Dash app
+#%% ==> DASHBOARD MAIN CLASS
 
 class DashBoardReport:
     
     def __init__(self):
+        
+        # ---------------------------------------------------------------------
+        # Leer data del main 
+        # ---------------------------------------------------------------------
         
         self.fig = go.Figure(data['fig_plot_model'])
         self.df_modal_em = pd.DataFrame(data['modal_results_EM'])
@@ -50,21 +55,26 @@ class DashBoardReport:
         self.fig_nodal_responses = go.Figure(data['fig_nodal_responses'])
         self.fig_frame_responses = go.Figure(data['fig_frame_responses'])
         self.fig_forces = go.Figure(data['fig_forces'])
-
         
+        # -----> Generar fecha
         self.generate_date = datetime.today().strftime("%d/%m/%Y")
-    
+        
+        # -----> Iniciar la app Dash 
         self.app = dash.Dash(
+            
             __name__, 
             suppress_callback_exceptions=True,
             external_stylesheets=[dbc.themes.BOOTSTRAP, "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"]
             )
-        self.header = self.header_fun()
-        self.sidebar = self.sidebar_fun()
-
-        self.app_layout()
-        self.render_page()
-        self.actualizar_contenido_main()        
+        
+        self.header = self.header_fun()   # Header
+        self.sidebar = self.sidebar_fun() # Navbar
+        
+        self.app_layout()                 # Main para el header y navbar
+        self.render_page()                # Rutas del navbar
+        
+        # -----> Funciones especificas
+        self.contenido_comparacion_modelos()  # Actualizar contenido del resumen
         
         if __name__ == '__main__':
             import webbrowser
@@ -89,7 +99,7 @@ class DashBoardReport:
         
         def render_page_content(pathname):
             if pathname == "/":
-                return self.layout_home()
+                return LayoutHome.layout_home()
             elif pathname == "/resumen":
                 return self.layout_resumen()
             # elif pathname == "/verificaciones":
@@ -99,8 +109,111 @@ class DashBoardReport:
             # elif pathname == "/exportar":
             #     return layout_exportar()
             return html.Div("404 Página no encontrada")
+    
+    def layout_resumen(self):
+        return html.Div([
+            LayoutSummary.layout_resumen_descripcion_modelos(),
+            LayoutSummary.layout_resumen_vista3D(self),
+            LayoutSummary.layout_comparaciones(),
+            LayoutSummary.layout_resumen_vista3D_forces(self),
+            LayoutSummary.layout_resumen_vista3D_nodal_responses(self),
+            LayoutSummary.layout_resumen_vista3D_frame_responses(self)
+        ])
+ 
+    def contenido_comparacion_modelos(self):
+        @self.app.callback(
+            Output("contenido-comparacion-modelos", "children"),
+            Input("dropdown-comparacion-modelos", "value")
+        )
+        
+        def actualizar_contenido(tipo):
+            if tipo == "periodos":
+                return LayoutSummary.contenido_periodos_modales(self)
+            if tipo == "cargas":
+                return LayoutSummary.contenido_cargas_vigas(self)
+            if tipo == "fuerzas":
+                return LayoutSummary.contenido_fuerzas_elementos(self)
+     
+        
+    def header_fun(self):
+        
+        header = dbc.Container([
+            dbc.Row([
+                # Columna izquierda: logos (EstrucMed + CSItoOpenSees)
+                dbc.Col([
+                    html.Img(src="/assets/estrucmed.png", height="60px", style={"marginLeft": "25px"}),
+                    html.Img(src="/assets/line.png", height="60px", style={"marginLeft": "30px"}),
+                    html.Img(src="/assets/csi_to_opensees.png", height="60px", style={"marginLeft": "30px"})            
+                ], width="auto", style={"display": "flex", "alignItems": "center"}),
+
+                # Columna derecha: Nombre del proyecto + fecha de generacion
+                dbc.Col([
+                    html.Div([
+                        html.H4(
+                            "REPORTE DE RESULTADOS",
+                            style={
+                                "fontSize": "35px",       
+                                "color": "white",         
+                                "fontWeight": "bold",     
+                                "marginBottom": "0px"     
+                            }
+                        ),
+                        html.H6(
+                            "VELVET-PLATAFORMA",
+                            style={
+                                "fontSize": "25px",
+                                "color": "white",       
+                                "fontWeight": "bold"     
+                            }
+                        ),
+                        html.Div(f"Fecha de generación : {self.generate_date}", 
+                                 style={"fontSize": "0.9em", 
+                                        "color": "white", 
+                                        "fontWeight": "bold"})
+                    ], style={"textAlign": "center"})
+                ], width=6),
+            ], align="center", className="py-2")
             
-    def layout_home(self):
+        ], fluid=True, style={
+                        "backgroundColor": "#75B72A",
+                        "borderRadius": "0 0 0 35px",
+                        "padding": "15px",
+                        "position": "fixed",          
+                        "top": "0",
+                        "left": "0",
+                        "right": "0",
+                        "zIndex": "1000",             
+                        "height": "150px"             
+                    })
+        return header
+                              
+    def sidebar_fun(self):
+        
+        sidebar = html.Div([
+            dbc.Nav([
+                dbc.NavLink(html.I(className="bi bi-house-door", style={"fontSize": "1.5rem"}), href="/", id="tab-home", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
+                dbc.NavLink(html.I(className="bi bi-diagram-3", style={"fontSize": "1.5rem"}), href="/resumen", id="tab-resumen", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
+                dbc.NavLink(html.I(className="bi bi-exclamation-octagon", style={"fontSize": "1.5rem"}), href="/verificaciones", id="tab-verificaciones", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
+                dbc.NavLink(html.I(className="bi bi-graph-up", style={"fontSize": "1.5rem"}), href="/resultados", id="tab-resultados", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
+                dbc.NavLink(html.I(className="bi bi-download", style={"fontSize": "1.5rem"}), href="/exportar", id="tab-exportar", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
+            ], vertical=True, pills=True, justified=True)
+        ], style={
+            "position": "fixed",
+            "top": "125px",
+            "left": "0",
+            "bottom": "0",
+            "width": "90px",
+            "paddingTop": "180px",  # Para que no se cruce con el header
+            "backgroundColor": "#E7E6E6",
+            "textAlign": "center"
+        })
+        
+        return sidebar
+
+#%% ==> LAYOUT HOME CLASS
+class LayoutHome(DashBoardReport):
+    
+    def layout_home():
         return dbc.Container([
             html.H2("Bienvenido al Reporte de Resultados", className="titulo-header"),
             
@@ -146,22 +259,50 @@ class DashBoardReport:
     
             html.P("Puedes usar la barra lateral para moverte entre secciones.", className="lead")
         ], style={"padding": "60px", "backgroundColor": "white", 'marginTop':'150px'})
-    
-    def layout_resumen(self):
-        return html.Div([
-            self.layout_resumen_descripcion_modelos(),
-            self.layout_resumen_vista3D(),
-            self.layout_comparaciones(),
-            self.layout_resumen_vista3D_forces(),
-            self.layout_resumen_vista3D_nodal_responses(),
-            self.layout_resumen_vista3D_frame_responses()
-        ])
 
-    def layout_resumen_descripcion_modelos(self):
+#%% ==> LAYOUT SUMMARY CLASS
+class LayoutSummary(DashBoardReport):
+    
+    def layout_resumen_descripcion_modelos():
         return dbc.Container([
     
             html.H2("Resumen de los modelos generados", className="titulo-header"),
             
+            html.P([
+                "En esta sección del reporte se presenta una visión integral del modelo estructural generado. ",
+                "El objetivo es que el usuario pueda verificar su correcta configuración, visualizar sus propiedades principales, ",
+                "y comparar de forma clara los resultados entre los modelos Elástico (EM) e Inelástico (NLM)."
+                
+            ], className="lead"),
+            
+            html.Ol([
+                html.Li([
+                    html.B("Descripción general de los modelos:"), " se resumen las características principales del modelo elástico y no lineal, ",
+                    "incluyendo sus configuraciones de materiales, elementos, transformación geométrica, aplicación de cargas y definición de masas."
+                ]),
+                html.Li([
+                    html.B("Vista 3D del modelo:"), " visualización espacial del edificio para revisar que todos los elementos hayan sido modelados correctamente. ",
+                    "Permite identificar errores como losas faltantes, elementos sueltos o geometría mal conectada."
+                ]),
+                html.Li([
+                    html.B("Comparación entre modelos EM y NLM:"), " tablas detalladas comparan resultados clave entre ambos modelos: ",
+                    "periodos modales, masas participativas, cargas distribuidas en vigas y fuerzas internas en columnas. ",
+                    "En cada caso se analizan las diferencias entre modelos incluso cuando las cargas son equivalentes."
+                ]),
+                html.Li([
+                    html.B("Visualización de cargas asignadas:"), " gráfico en 3D que muestra las cargas aplicadas a vigas y columnas, ",
+                    "permitiendo verificar consistencia con el modelo original de ETABS."
+                ]),
+                html.Li([
+                    html.B("Deformada 3D del modelo:"), " animación o vista estática que representa la deformada del modelo bajo el análisis gravitacional. ",
+                    "Permite validar compatibilidad estructural, continuidad de diafragmas y deformaciones esperadas."
+                ]),
+                html.Li([
+                    html.B("Respuesta interna de elementos (Momento Mz):"), " mapa 3D de esfuerzos internos en las vigas y columnas, particularmente el momento flector My. ",
+                    "Esta vista permite comprobar la distribución de fuerzas bajo cargas gravitacionales."
+                ])
+            ], className="lead"),
+                        
             html.Br(),
             
             html.H4("Descripción general de los modelos", 
@@ -220,7 +361,8 @@ class DashBoardReport:
             html.Hr(),
     
         ],  style={"padding": "60px", 'marginTop':'150px'})
-
+    
+    
     def layout_resumen_vista3D(self):
         
         return dbc.Container([
@@ -233,7 +375,8 @@ class DashBoardReport:
             
         ])
     
-    def layout_comparaciones(self):
+    
+    def layout_comparaciones():
         return dbc.Container([
     
             html.H4("Comparación entre Modelos Elástico e Inelástico", 
@@ -261,61 +404,7 @@ class DashBoardReport:
             html.Div(id="contenido-comparacion-modelos")
     
         ], style = {'padding':'0px 0px 0px 50px'}) #style={"padding": "40px"}
-        
-    def layout_resumen_vista3D_forces(self):
-        
-        return dbc.Container([
-            html.Br(),
-            html.Br(),
-            
-            html.H4("Cargas asignadas al modelo", className="mb-4 text-muted", style = {'padding':'0px 0px 0px 50px'}),
-            dcc.Graph(figure = self.fig_forces, style={'height': '700px'}),
-            html.Hr(),
-            html.Br(),
-            html.Br()
-            
-        ])
     
-    def layout_resumen_vista3D_nodal_responses(self):
-        
-        return dbc.Container([
-            html.Br(),
-            html.Br(),
-            
-            html.H4("Deformada 3D del modelo", className="mb-4 text-muted", style = {'padding':'0px 0px 0px 50px'}),
-            dcc.Graph(figure = self.fig_nodal_responses, style={'height': '700px'}),
-            html.Hr(),
-            html.Br(),
-            html.Br()
-            
-        ])
-    
-    def layout_resumen_vista3D_frame_responses(self):
-        
-        return dbc.Container([
-            
-            html.H4("Respuesta de los elementos", className="mb-4 text-muted", style = {'padding':'0px 0px 0px 50px'}),
-            dcc.Graph(figure = self.fig_frame_responses, style={'height': '700px'}),
-            html.Hr(),
-            html.Br(),
-            html.Br()
-            
-        ])
-    
-    def actualizar_contenido_main(self):
-        @self.app.callback(
-            Output("contenido-comparacion-modelos", "children"),
-            Input("dropdown-comparacion-modelos", "value")
-        )
-        
-        def actualizar_contenido(tipo):
-            if tipo == "periodos":
-                return self.contenido_periodos_modales()
-            if tipo == "cargas":
-                return self.contenido_cargas_vigas()
-            if tipo == "fuerzas":
-                return self.contenido_fuerzas_elementos()
-            
     def contenido_periodos_modales(self):
         df_modal_em = self.df_modal_em.round(3) 
         df_modal_nlm = self.df_modal_nlm.round(3) 
@@ -488,80 +577,48 @@ class DashBoardReport:
             
             
         ], fluid=True)
+    
+    def layout_resumen_vista3D_forces(self):
         
-    def header_fun(self):
-        
-        header = dbc.Container([
-            dbc.Row([
-                # Columna izquierda: logos (EstrucMed + CSItoOpenSees)
-                dbc.Col([
-                    html.Img(src="/assets/estrucmed.png", height="60px", style={"marginLeft": "25px"}),
-                    html.Img(src="/assets/line.png", height="60px", style={"marginLeft": "30px"}),
-                    html.Img(src="/assets/csi_to_opensees.png", height="60px", style={"marginLeft": "30px"})            
-                ], width="auto", style={"display": "flex", "alignItems": "center"}),
-
-                # Columna derecha: Nombre del proyecto + fecha de generacion
-                dbc.Col([
-                    html.Div([
-                        html.H4(
-                            "REPORTE DE RESULTADOS",
-                            style={
-                                "fontSize": "35px",       
-                                "color": "white",         
-                                "fontWeight": "bold",     
-                                "marginBottom": "0px"     
-                            }
-                        ),
-                        html.H6(
-                            "VELVET-PLATAFORMA",
-                            style={
-                                "fontSize": "25px",
-                                "color": "white",       
-                                "fontWeight": "bold"     
-                            }
-                        ),
-                        html.Div(f"Fecha de generación : {self.generate_date}", 
-                                 style={"fontSize": "0.9em", 
-                                        "color": "white", 
-                                        "fontWeight": "bold"})
-                    ], style={"textAlign": "center"})
-                ], width=6),
-            ], align="center", className="py-2")
+        return dbc.Container([
+            html.Br(),
+            html.Br(),
             
-        ], fluid=True, style={
-                        "backgroundColor": "#75B72A",
-                        "borderRadius": "0 0 0 35px",
-                        "padding": "15px",
-                        "position": "fixed",          
-                        "top": "0",
-                        "left": "0",
-                        "right": "0",
-                        "zIndex": "1000",             
-                        "height": "150px"             
-                    })
-        return header
-                              
-    def sidebar_fun(self):
+            html.H4("Cargas asignadas al modelo", className="mb-4 text-muted", style = {'padding':'0px 0px 0px 50px'}),
+            dcc.Graph(figure = self.fig_forces, style={'height': '700px'}),
+            html.Hr(),
+            html.Br(),
+            html.Br()
+            
+        ])
+    
+    def layout_resumen_vista3D_nodal_responses(self):
         
-        sidebar = html.Div([
-            dbc.Nav([
-                dbc.NavLink(html.I(className="bi bi-house-door", style={"fontSize": "1.5rem"}), href="/", id="tab-home", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
-                dbc.NavLink(html.I(className="bi bi-diagram-3", style={"fontSize": "1.5rem"}), href="/resumen", id="tab-resumen", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
-                dbc.NavLink(html.I(className="bi bi-exclamation-octagon", style={"fontSize": "1.5rem"}), href="/verificaciones", id="tab-verificaciones", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
-                dbc.NavLink(html.I(className="bi bi-graph-up", style={"fontSize": "1.5rem"}), href="/resultados", id="tab-resultados", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
-                dbc.NavLink(html.I(className="bi bi-download", style={"fontSize": "1.5rem"}), href="/exportar", id="tab-exportar", active="exact", style={"marginTop": "10px", "marginBottom": "10px"}),
-            ], vertical=True, pills=True, justified=True)
-        ], style={
-            "position": "fixed",
-            "top": "125px",
-            "left": "0",
-            "bottom": "0",
-            "width": "90px",
-            "paddingTop": "180px",  # Para que no se cruce con el header
-            "backgroundColor": "#E7E6E6",
-            "textAlign": "center"
-        })
+        return dbc.Container([
+            html.Br(),
+            html.Br(),
+            
+            html.H4("Deformada 3D del modelo", className="mb-4 text-muted", style = {'padding':'0px 0px 0px 50px'}),
+            dcc.Graph(figure = self.fig_nodal_responses, style={'height': '700px'}),
+            html.Hr(),
+            html.Br(),
+            html.Br()
+            
+        ])
+    
+    def layout_resumen_vista3D_frame_responses(self):
         
-        return sidebar
+        return dbc.Container([
+            
+            html.H4("Respuesta de los elementos", className="mb-4 text-muted", style = {'padding':'0px 0px 0px 50px'}),
+            dcc.Graph(figure = self.fig_frame_responses, style={'height': '700px'}),
+            html.Hr(),
+            html.Br(),
+            html.Br()
+            
+        ])
 
-DashBoardReport()
+#%% ==> EJECUTAR
+if __name__ == "__main__":
+    DashBoardReport()
+

@@ -112,13 +112,33 @@ class pushoverclass:
         # Rutina para asignar las cargas
         ops.timeSeries('Linear', tag_pattern)
         ops.pattern('Plain',tag_pattern,tag_pattern)
-    
+        
+        
+        # Asignación de cargas con patrón triangular
         for i,n in enumerate(dnodes):
             if direction == 'X':
                 ops.load(n,fact[i],0,0,0,0,0)
             elif direction == 'Y':
                 ops.load(n,0,fact[i],0,0,0,0)
     
+        # Asignación de cargas con patrón modal
+        eigforce = np.zeros(len(dnodes))
+        for j, n in enumerate(dnodes):
+            dir_ = 1
+            if direction == 'Y':
+                dir_ = 2
+            eigforce[j] = ops.nodeEigenvector(n, dir_, 1) 
+            
+        norm2 = np.sum(eigforce)
+        eigforces  = eigforce/norm2
+        
+        for j, n in enumerate(dnodes):
+            if direction == 'X':
+                ops.load(n, eigforces[j], 0, 0, 0, 0, 0)
+            elif direction == 'Y':
+                ops.load(n, 0, eigforces[j], 0, 0, 0, 0)
+        
+        
         if direction == 'X':
             IDctrlDOF = 1 
         elif direction == 'Y':
