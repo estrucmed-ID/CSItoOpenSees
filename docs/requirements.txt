@@ -1,5 +1,5 @@
 openseespy==3.7.0.3
-vfo==0.0.19
+vfo==0.0.11
 opsvis==1.1.10
 opstool==1.0.14
 xarray==2024.11.0

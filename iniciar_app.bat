@@ -1,29 +1,38 @@
 @echo off
-setlocal
+echo -------------------------------
+echo [1] Verificando entorno virtual
+echo -------------------------------
 
-echo ================================
-echo Iniciando la plataforma...
-echo ================================
-
-REM Verificar si ya existe el entorno virtual
 if not exist ".venv" (
-    echo [1/4] Creando entorno virtual .venv con Python 3.12...
-    python -m venv .venv
+    echo Entorno virtual no encontrado. Creando entorno virtual con Python 3.12...
+    py -3.12 -m venv .venv
+    if errorlevel 1 (
+        echo ERROR: No se pudo crear el entorno virtual con Python 3.12. ¿Está instalado?
+        pause
+        exit /b 1
+    )
 )
 
-REM Activar el entorno virtual
-echo [2/4] Activando entorno virtual...
+echo ------------------------------------
+echo [2] Activando entorno virtual .venv
+echo ------------------------------------
 call .venv\Scripts\activate.bat
 
-REM Instalar dependencias
-echo [3/4] Instalando requerimientos...
-pip install -r docs\requirements.txt > nul
+echo -----------------------
+echo [3] Actualizando pip...
+echo -----------------------
+python -m pip install --upgrade pip
 
-REM Ejecutar la aplicación
-echo [4/4] Ejecutando la plataforma...
+echo ----------------------------------------
+echo [4] Instalando dependencias (requirements)
+echo ----------------------------------------
+pip install -r docs\requirements.txt
+
+echo ----------------------
+echo [5] Ejecutando main.py
+echo ----------------------
 python main.py
 
-echo.
-echo Presiona cualquier tecla para cerrar...
-pause > nul
+pause
+
 
