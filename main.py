@@ -21,7 +21,6 @@ Norma utilizada: NSR-10.
 
 """     
 #%% ==> IMPORTAR LIBRERIAS 
-
 # Ubicar los modulos personalizados usados en el script
 import sys
 import os
@@ -39,8 +38,8 @@ sys.path.append(modules_path)
 sys.path.append(services_path)
 
 # Importar servicios
-import utilities as ut
-import archetype as ach
+import modules.utilities as ut
+import modules.archetype as ach
 
 #%% ==> PARAMETROS DE ENTRADA
 

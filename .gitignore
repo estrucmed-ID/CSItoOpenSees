@@ -1,0 +1,12 @@
+"""
+@author: Daniela Novoa, Orlando Arroyo, Frank Vidales
+@owner: EstrucMed Ingeniería especializada S.A.S
+
+
+"""  
+
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.log
