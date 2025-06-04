@@ -33,6 +33,24 @@ echo [5] Ejecutando main.py
 echo ----------------------
 python main.py
 
+if errorlevel 1 (
+    echo ERROR: main.py encontró un problema. Abortando...
+    pause
+    exit /b 1
+)
+
+echo.
+set /p VIEW_DASH="¿Desea visualizar el dashboard? (s/n): "
+
+if /i "%VIEW_DASH%"=="s" (
+    echo -------------------------------
+    echo [6] Ejecutando generate_dashboard.py
+    echo -------------------------------
+    python dash_app\generate_dashboard.py
+) else (
+    echo Omitiendo dashboard...
+)
+
 pause
 
 

@@ -18,7 +18,8 @@ import json
 import plotly.graph_objects as go
 import pandas as pd
 
-dash_path = os.getcwd()
+# dash_path = os.getcwd()
+dash_path = os.path.dirname(os.path.abspath(__file__))
 main_path_default = os.path.abspath(os.path.join(dash_path, '..'))
 report_path = os.path.abspath(os.path.join(main_path_default, 'outputs', 'reports'))
 modules_path = os.path.join(main_path_default, 'modules')
@@ -28,6 +29,7 @@ sys.path.append(modules_path)
 #%% ==> CARGAR RESULTADOS DE TODOS LOS GENERADORES
     
 path_json = os.path.join(report_path, 'archetype_results_report.json')
+
 with open(path_json, 'r') as f:
     data = json.load(f)
 
