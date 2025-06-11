@@ -358,11 +358,11 @@ class ModelBuilder:
             self.SC_frames['Conf_Label'] = Conf_Tag
         
         # Iterate over all wall sections (if their exist in the model)
-        if isinstance(self.SC_walls, pd.DataFrame):
-            Unconf_Tag, Conf_Tag, Steel_Tag = generate_nonlinear_materials(self.SC_walls)
-            self.SC_walls['Steel_Label'] = Steel_Tag
-            self.SC_walls['UnConf_Label'] = Unconf_Tag
-            self.SC_walls['Conf_Label'] = Conf_Tag
+        # if isinstance(self.SC_walls, pd.DataFrame):
+        #     Unconf_Tag, Conf_Tag, Steel_Tag = generate_nonlinear_materials(self.SC_walls)
+        #     self.SC_walls['Steel_Label'] = Steel_Tag
+        #     self.SC_walls['UnConf_Label'] = Unconf_Tag
+        #     self.SC_walls['Conf_Label'] = Conf_Tag
     
     def _assgWallElasticMaterials(self):
         
@@ -662,13 +662,15 @@ class ModelBuilder:
             Frame_LocalAxes = 0
         else:
             Frame_LocalAxes = 1
-    
+        
         # === Step 1: Clean and format frame element data ===
         self.OE_frames = self.OE_frames[self.OE_frames['Object Type'] == 'Frame'].copy()
         self.OE_frames['Element Label'] = self.OE_frames['Element Label'].astype(str).apply(ut.modify_element_label_as_int)
         self.OE_frames['Joint I'] = pd.to_numeric(self.OE_frames['Joint I'], errors='coerce')  # Convert to numeric
         self.OE_frames['Joint J'] = pd.to_numeric(self.OE_frames['Joint J'], errors='coerce')
-    
+        
+        self.dict['TABLE:  "OBJECTS AND ELEMENTS - FRAMES"'] = self.OE_frames
+        
         # Resolve missing joint values (caused by wrong label formatting)
         missing_joints = self.OE_frames[self.OE_frames['Joint I'].isna() | self.OE_frames['Joint J'].isna()]
         resolved_rows = (
@@ -757,6 +759,7 @@ class ModelBuilder:
         self.GN_Slabs = pd.merge(self.GN_Slabs, self.SC_shells[['Section', 'Slab Thickness', 'Fc', 'Slab_Label']], on='Section', how='inner')
     
         # Store the processed section tables in the internal dictionary
+        
         self.dict['TABLE:  "FRAME GENERATION"'] = self.GN_frames
         self.dict['TABLE:  "SLAB GENERATION"'] = self.GN_Slabs
         self.dict['TABLE:  "FRAME ASSIGNMENTS - OFFSETS"'] = self.AS_offsets
@@ -1107,7 +1110,6 @@ class ModelBuilder:
 
         oeshells['LJ1-J2'] = [np.sqrt( (row['XJ1']-row['XJ2'])**2 + (row['YJ1']-row['YJ2'])**2 ) for i, row in oeshells.iterrows()]
 
-
         # Calcular longitudes entre nodos consecutivos
         for i in range(1, 5):
             j = 1 if i == 4 else i + 1  # para cerrar el ciclo J4-J1
@@ -1142,7 +1144,7 @@ class ModelBuilder:
             y.append(y[0])
             area = 0.5 * abs(sum(x[i]*y[i+1] - x[i+1]*y[i] for i in range(len(coords))))
             return area
-
+        
         oeshells['area_losa'] = oeshells.apply(calcular_area_losa, axis=1)
 
         # Esta modelado desde ETABS como losa en una direccion?
@@ -1172,12 +1174,12 @@ class ModelBuilder:
                 return '1d'
             else:
                 return '2d'
-
+            
         oeshells['direccion_losa'] = oeshells.apply(determinar_direccion_losa, axis=1)
 
         oeshells['shell-direction'] = ['1direction' if row['One-Way Load Distribution?'] == 'Yes' or row['direccion_losa'] == '1d'
                                        else '2direction' for index,row in oeshells.iterrows()]
-
+        
         # Calcular areas tributarias
         for i in range(1, 5):
             j = 1 if i == 4 else i + 1
@@ -1208,7 +1210,8 @@ class ModelBuilder:
 
         joints = self.OE_joints
         
-        self.oeframeloadB = self.data_file['TABLE:  "OBJECTS AND ELEMENTS - FRAMES"']
+        # self.oeframeloadB = self.data_file['TABLE:  "OBJECTS AND ELEMENTS - FRAMES"']
+        self.oeframeloadB = self.GN_frames
         oeframeload = self.oeframeloadB
         
         oeframeloadC = self.GN_frames
@@ -1239,7 +1242,7 @@ class ModelBuilder:
         oeframeload['lenght'] = [np.sqrt( (row['Xj']-row['Xi'])**2 + (row['Yj']-row['Yi'])**2 ) for i, row in oeframeload.iterrows()]
 
         asgframes = pd.merge(asgframes, framessection[['Section','Area']], on = 'Section', how = 'inner')
-        oeframeload = pd.merge(oeframeload, asgframes[['Object Label','Story','Area']], on = ['Object Label','Story'], how = 'inner')
+        oeframeload = pd.merge(oeframeload, asgframes[['Object Label','Story']], on = ['Object Label','Story'], how = 'inner')
 
         # filtrar objects and elements - shells
         oeshells = oeshells[oeshells['Area Type'] == 'Floor']
@@ -1313,7 +1316,7 @@ class ModelBuilder:
                 f'{j1} - {j2}',
                 f'{j2} - {j1}'
             ]
-
+        
         oeshells = oeshells.apply(slabjoints_combinations, axis = 1, result_type = 'expand')
 
         oeframeload = oeframeload.apply(beamjoints_combinations, axis = 1, result_type = 'expand')
@@ -1321,60 +1324,55 @@ class ModelBuilder:
             'Story','Beam Label','Element Label','Lenght','Atv','Ji_Jj', 'Jj_Ji'
         ]
 
-        duplicados = oeframeload[oeframeload.duplicated(subset=['Beam Label', 'Story'], keep=False)]
-
-        # Agrupar duplicados y combinarlos
-        filas_combinadas = []
-        final_lengths = {}
-        for (beam, story), group in duplicados.groupby(['Beam Label', 'Story']):
-            group = group.sort_values('Element Label')  # ordena por Element Label
+        # duplicados = oeframeload[oeframeload.duplicated(subset=['Beam Label', 'Story'], keep=False)]
+        
+        # # Agrupar duplicados y combinarlos
+        # filas_combinadas = []
+        # final_lengths = {}
+        # for (beam, story), group in duplicados.groupby(['Beam Label', 'Story']):
+        #     group = group.sort_values('Element Label')  # ordena por Element Label
             
-            # Extraer valores combinados
-            element_label = int(group['Element Label'].iloc[0].split('-')[0])
-            lenght_total = group['Lenght'].sum()
+        #     # Extraer valores combinados
+        #     element_label = int(group['Element Label'].iloc[0].split('-')[0])
+        #     lenght_total = group['Lenght'].sum()
             
-            # Crear combinaciones de juntas
-            ji_start = group['Ji_Jj'].iloc[0].split(' - ')[0]
-            ji_end = group['Ji_Jj'].iloc[-1].split(' - ')[1]
-            ji_jj_comb = f'{ji_start} - {ji_end}'
-            jj_ji_comb = f'{ji_end} - {ji_start}'
+        #     # Crear combinaciones de juntas
+        #     ji_start = group['Ji_Jj'].iloc[0].split(' - ')[0]
+        #     ji_end = group['Ji_Jj'].iloc[-1].split(' - ')[1]
+        #     ji_jj_comb = f'{ji_start} - {ji_end}'
+        #     jj_ji_comb = f'{ji_end} - {ji_start}'
             
-            # Guardar longitud combinada para cada fila original
-            idxs = group.index.tolist()
-            for idx in idxs:
-                final_lengths[idx] = lenght_total
+        #     # Guardar longitud combinada para cada fila original
+        #     idxs = group.index.tolist()
+        #     for idx in idxs:
+        #         final_lengths[idx] = lenght_total
 
-            filas_combinadas.append({
-                'Story': story,
-                'Beam Label': beam,
-                'Element Label': element_label,
-                'Lenght': lenght_total,
-                'Final Lenght': lenght_total,
-                'Ji_Jj': ji_jj_comb,
-                'Jj_Ji': jj_ji_comb
-            })
+        #     filas_combinadas.append({
+        #         'Story': story,
+        #         'Beam Label': beam,
+        #         'Element Label': element_label,
+        #         'Lenght': lenght_total,
+        #         'Final Lenght': lenght_total,
+        #         'Ji_Jj': ji_jj_comb,
+        #         'Jj_Ji': jj_ji_comb
+        #     })
 
-        # Asignar 'final lenght' a duplicados
-        mapped = oeframeload.index.map(final_lengths)
-        oeframeload['Final Lenght'] = mapped.where(mapped.notna(), oeframeload['Lenght'])
-
-        df_combinados = pd.DataFrame(filas_combinadas)
-        oeframeload = pd.concat([oeframeload, df_combinados], ignore_index=True)
-
-        # Listas para guardar resultados
-        floor_matches = []
-        floor_thickness = []
-        floor_at_values = []  # <-- nueva lista para el valor de AT
-        combinaciones2 = []
-        for _, row2 in oeframeload.iterrows():
-            
+        # # Asignar 'final lenght' a duplicados
+        # mapped = oeframeload.index.map(final_lengths)
+        # oeframeload['Final Lenght'] = mapped.where(mapped.notna(), oeframeload['Lenght'])
+        
+        oeframeload['Final Lenght'] = oeframeload['Lenght']
+        # df_combinados = pd.DataFrame(filas_combinadas)
+        # oeframeload = pd.concat([oeframeload, df_combinados], ignore_index=True)
+        
+        def procesar_fila(row2, oeshells):
             combinacion1 = row2['Ji_Jj']
             combinacion2 = row2['Jj_Ji']
-
+        
             coincidencias = []
             thickness = []
             at_values = []
-
+        
             for _, row1 in oeshells.iterrows():
                 combinaciones = {
                     'J1_J2': row1.get('J1_J2'), 'J2_J1': row1.get('J2_J1'),
@@ -1382,69 +1380,112 @@ class ModelBuilder:
                     'J3_J4': row1.get('J3_J4'), 'J4_J3': row1.get('J4_J3'),
                     'J4_J1': row1.get('J4_J1'), 'J1_J4': row1.get('J1_J4')
                 }
-                
-                combinaciones2.append(combinaciones)
-                
+        
                 if combinacion1 in combinaciones.values():
-                    
                     coincidencias.append(row1['Floor Label'])
                     thickness.append(row1['eL'])
-                    
-                    df_combi = pd.DataFrame(combinaciones.values()).reset_index()
-                    index = np.where(df_combi==combinacion1)[0][0]
-                    
-                    df_combi2 = pd.DataFrame.from_dict(combinaciones, orient='index').reset_index()
-                    df_combi2.rename(columns={'index': 'key'}, inplace=True)
-                    at_values.append(row1[f'at-{df_combi2["key"][index]}'])  # <-- AT correspondiente
-                    
+        
+                    key_list = list(combinaciones.keys())
+                    val_list = list(combinaciones.values())
+                    index = val_list.index(combinacion1)
+                    key = key_list[index]
+                    at_values.append(row1.get(f'at-{key}', 0.0))  # valor por defecto si no existe
+        
                 elif combinacion2 in combinaciones.values():
                     coincidencias.append(row1['Floor Label'])
                     thickness.append(row1['eL'])
-                    
-                    df_combi = pd.DataFrame(combinaciones.values()).reset_index()
-                    index = np.where(df_combi==combinacion2)[0][0]
-                    
-                    df_combi2 = pd.DataFrame.from_dict(combinaciones, orient='index').reset_index()
-                    df_combi2.rename(columns={'index': 'key'}, inplace=True)
-                    at_values.append(row1[f'at-{df_combi2["key"][index]}'])  # <-- AT correspondiente
+        
+                    key_list = list(combinaciones.keys())
+                    val_list = list(combinaciones.values())
+                    index = val_list.index(combinacion2)
+                    key = key_list[index]
+                    at_values.append(row1.get(f'at-{key}', 0.0))  # valor por defecto si no existe
+        
+            return coincidencias, thickness, at_values
+        
+        from joblib import Parallel, delayed
 
-            floor_matches.append(coincidencias)
-            floor_thickness.append(thickness)
-            floor_at_values.append(at_values)  # <-- guardar lista de AT
-
-        oeframeload['Floor Labels Matched'] = floor_matches
-        oeframeload['Floor Thickness Matched'] = floor_thickness
-        oeframeload['Floor tributary Matched'] = floor_at_values
-
-        Wcl_resultados = []
-        Wcv_resultados = []
-        for idx, row in oeframeload.iterrows():
+        def cruzar_combinaciones_paralelo(oeframeload, oeshells, n_jobs=-1):
+            resultados = Parallel(n_jobs=n_jobs, backend="loky")(
+                delayed(procesar_fila)(row2, oeshells) for _, row2 in oeframeload.iterrows()
+            )
+        
+            floor_matches, floor_thickness, floor_at_values = zip(*resultados)
+        
+            oeframeload['Floor Labels Matched'] = floor_matches
+            oeframeload['Floor Thickness Matched'] = floor_thickness
+            oeframeload['Floor tributary Matched'] = floor_at_values
+        
+            return oeframeload
+        
+        tqdm.write(" generando las combinaciones ")
+        oeframeload = cruzar_combinaciones_paralelo(oeframeload, oeshells)
+        
+        tqdm.write(" calculando las cargas ")
+        def calcular_cargas_joblib(row, slabloads, F_cm, F_cv):
             tributary_area = row['Floor tributary Matched']
             lenght = row['Final Lenght']
             floor_labels = row['Floor Labels Matched']
             espesores = row['Floor Thickness Matched']
             story = row['Story']
             
-            Wcv_resultados.append(F_cm*24*row['Atv'])
-            
+            wcv = F_cm * 24 * row['Atv']
             wcl_total = 0.0
-
+        
             for i, label in enumerate(floor_labels):
                 espesor = espesores[i]
-                At_L = tributary_area[i]/lenght
-
-                # Filtrar cargas por label y tipo
+                At_L = tributary_area[i] / lenght
+        
+                # Filtrar las cargas correspondientes
                 cargas_label = slabloads[(slabloads['Label'] == label) & (slabloads['Story'] == story)]
-                                
                 carga_muerta = cargas_label[cargas_label['Load Pattern'] == 'SobreImpuesta']['Load'].sum()
                 carga_viva = cargas_label[cargas_label['Load Pattern'] == 'CargaViva']['Load'].sum()
-
-                # Si no hay valor, se usa 0.0 (ya lo maneja .sum())
+        
                 contribucion = At_L * (F_cm * (carga_muerta + 24 * espesor) + F_cv * carga_viva)
                 wcl_total += contribucion
+        
+            return wcl_total, wcv
+        
+        def ejecutar_con_joblib(oeframeload, slabloads, F_cm, F_cv, n_jobs=-1):
+            results = Parallel(n_jobs=n_jobs)(
+                delayed(calcular_cargas_joblib)(row, slabloads, F_cm, F_cv)
+                for _, row in oeframeload.iterrows()
+            )
+        
+            Wcl_resultados, Wcv_resultados = zip(*results)
+            return list(Wcl_resultados), list(Wcv_resultados)
 
-            Wcl_resultados.append(wcl_total)
+        # Wcl_resultados = []
+        # Wcv_resultados = []
+        # for idx, row in oeframeload.iterrows():
+        #     tributary_area = row['Floor tributary Matched']
+        #     lenght = row['Final Lenght']
+        #     floor_labels = row['Floor Labels Matched']
+        #     espesores = row['Floor Thickness Matched']
+        #     story = row['Story']
+            
+        #     Wcv_resultados.append(F_cm*24*row['Atv'])
+            
+        #     wcl_total = 0.0
 
+        #     for i, label in enumerate(floor_labels):
+        #         espesor = espesores[i]
+        #         At_L = tributary_area[i]/lenght
+
+        #         # Filtrar cargas por label y tipo
+        #         cargas_label = slabloads[(slabloads['Label'] == label) & (slabloads['Story'] == story)]
+                                
+        #         carga_muerta = cargas_label[cargas_label['Load Pattern'] == 'SobreImpuesta']['Load'].sum()
+        #         carga_viva = cargas_label[cargas_label['Load Pattern'] == 'CargaViva']['Load'].sum()
+
+        #         # Si no hay valor, se usa 0.0 (ya lo maneja .sum())
+        #         contribucion = At_L * (F_cm * (carga_muerta + 24 * espesor) + F_cv * carga_viva)
+        #         wcl_total += contribucion
+
+        #     Wcl_resultados.append(wcl_total)
+        
+        Wcl_resultados, Wcv_resultados = ejecutar_con_joblib(oeframeload, slabloads, F_cm, F_cv)
+        
         # Agregar columna al DataFrame
         oeframeload['Wcl'] = Wcl_resultados
         oeframeload['Wcv'] = Wcv_resultados
@@ -1567,21 +1608,22 @@ class ModelBuilder:
         for ind, alt in enumerate(altur):
             # Get all joint tags at this floor level
             index1 = self.OE_joints_COPY['Global Z'] == alt
-            dia1 = self.OE_joints_COPY[index1]['Element Label'].astype(int).to_list()
+            # dia1 = self.OE_joints_COPY[index1]['Element Label'].astype(int).to_list()
+            dia1 = [int(n) for n in self.OE_joints_COPY[index1]['Element Label']]
     
-            node_id = 100000000 * ind  # Unique node tag for mass center
-    
+            node_id = 1000000 * ind # Unique node tag for mass center
+
             # Create mass center node
-            ops.node(node_id, float(Xcent[ind]), float(Ycent[ind]), float(alt))
+            ops.node(int(node_id), float(Xcent[ind]), float(Ycent[ind]), float(alt))
     
             # Fix the node in Z and all rotational DOFs except torsion
-            ops.fix(node_id, 0, 0, 1, 1, 1, 0)
+            ops.fix(int(node_id), 0, 0, 1, 1, 1, 0)
     
             # Assign mass and rotational inertia (about vertical axis)
-            ops.mass(node_id, float(Masa[ind]), float(Masa[ind]), 0.0, 0.0, 0.0, float(Inercia[ind]))
+            ops.mass(int(node_id), float(Masa[ind]), float(Masa[ind]), 0.0, 0.0, 0.0, float(Inercia[ind]))
     
             # Create rigid diaphragm at this level linking joints to mass center
-            ops.rigidDiaphragm(3, node_id, *dia1)
+            ops.rigidDiaphragm(3, int(node_id), *dia1)
     
             self.center_of_mass_nodes.append(node_id)
     
@@ -1608,12 +1650,21 @@ class ModelBuilder:
         Nmodes = len(elastic_model.altur) * 3
     
         # Perform eigenvalue analysis
-        ops.eigen('fullGenLapack', Nmodes)
+        # ops.eigen('fullGenLapack', Nmodes)
+        # ops.eigen(Nmodes)
+        ops.eigen(10)
     
         # Save modal properties to file
         modal_results = ops.modalProperties('-return', '-unorm')
         
         return modal_results
+    
+    @staticmethod
+    def save_modal_results(folder_path, model_type):
+        """
+        """
+        ops.modalProperties('-print', '-file', os.path.join(folder_path, f'Modal_Report_{model_type}.txt'), '-unorm')
+    
     
     @staticmethod
     def modal_results_table(modal_results):
@@ -1956,5 +2007,3 @@ class ElasticModelBuilderWCMF(ModelBuilder):
 # main_class._genWalls()
 # main_class._genSlabs()
 
-# import vfo.vfo as vfo
-# vfo.plot_model()

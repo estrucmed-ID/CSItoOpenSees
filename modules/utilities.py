@@ -14,6 +14,7 @@ import shutil
 from functools import wraps
 import random
 import json
+import datetime
 
 
 #%% ==> FUNCION CREAR CARPETA DE RESULTADOS
@@ -85,6 +86,8 @@ class import_csi_info:
             if valores[index] in sheet_names:
                 data[indices[index]] = pd.read_excel(excel_path,sheet_name=valores[index],
                                                    skiprows=1).drop(index=0)
+                # df = pd.read_excel(excel_path, sheet_name=valores[index], skiprows=2)
+                # data[indices[index]] = df.to_dict(orient='records')  # ✅ conversión segura
             else:
                 data[indices[index]] = "Table Not Found"
         
@@ -107,6 +110,7 @@ def modify_element_label_as_int(label):
         else:
             base, suffix = label.split('-')
             return int(f"{base}{suffix.zfill(5)}")  # Convert to integer, then modify suffix
+        
     return int(float(label))  # Make sure that all the data is a integer
 
 def offset_direction(A, B):
@@ -149,8 +153,8 @@ def generar_color_aleatorio():
 def import_csi_data(main_path, input_name, folder_data):
     Import_csi_info = import_csi_info(main_path)
     data_file = Import_csi_info.import_tables(input_name)
-    
     conver_to_json(data_file, folder_data, 'model_information')
+
 
 def process_json_data(folder_data, file_name):
     output_path = os.path.join(folder_data, f'{file_name}.json')
@@ -164,24 +168,85 @@ def process_json_data(folder_data, file_name):
     
     return restored_data
 
+def make_serializable(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: make_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_serializable(i) for i in obj]
+    else:
+        return obj
+    
 def conver_to_json(data,folder_data,file_name):
     
-    # Convertir a JSON (string) por cada DataFrame
-    serializable_data = {k: safe_convert(v) for k, v in data.items()}
+    # # Convertir a JSON (string) por cada DataFrame    
+    # serializable_data = {k: safe_convert(v) for k, v in data.items()}
     
-    # Guardar como archivo .json
+    # # Guardar como archivo .json
+    # output_path = os.path.join(folder_data, f'{file_name}.json')
+    
+    # with open(output_path, 'w') as f:
+    #     json.dump(serializable_data, f, indent=2, ensure_ascii=False) # default=convert_numpy)
+        
+    serializable_data = make_serializable(data)
     output_path = os.path.join(folder_data, f'{file_name}.json')
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(serializable_data, f, indent=2, ensure_ascii=False)
+        
+    # # Asegurar que los datos son serializables
+    # safe_data = make_json_safe(data)
     
-    with open(output_path, 'w') as f:
-        json.dump(serializable_data, f, indent=2, default=convert_numpy)
+    # # Guardar como archivo .json
+    # output_path = os.path.join(folder_data, f'{file_name}.json')
+    
+    # with open(output_path, 'w') as f:
+    #     json.dump(safe_data, f, indent=2, ensure_ascii=False)
         
 def safe_convert(v):
         if isinstance(v, pd.DataFrame):
-            return v.to_dict(orient='records')
+            return make_json_safe(v.to_dict(orient='records'))
+        elif isinstance(v, str) and v == "Table Not Found":
+            return "Table Not Found"
         elif isinstance(v, go.Figure):
             return v.to_plotly_json()
         else:
-            return v
+            return make_json_safe(v)
+            
+        
+def make_json_safe(obj, seen=None):
+
+    # if seen is None:
+    #     seen = set()
+    # obj_id = id(obj)
+
+    # if obj_id in seen:
+    #     return None  # Evita referencias circulares
+
+    # seen.add(obj_id)
+
+    if isinstance(obj, dict):
+        return {str(k): make_json_safe(v, seen) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_safe(i, seen) for i in obj]
+    elif isinstance(obj, tuple):
+        return [make_json_safe(i, seen) for i in obj]
+    elif isinstance(obj, set):
+        return [make_json_safe(i, seen) for i in obj]
+    elif isinstance(obj, (np.integer, int)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, float)):
+        return float(obj)
+    elif isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    elif isinstance(obj, (np.ndarray,)):
+        return obj.tolist()
+    elif obj is None or (isinstance(obj, float) and pd.isna(obj)):
+        return None
+    elif isinstance(obj, (datetime.datetime, datetime.date, pd.Timestamp)):
+        return str(obj)  # <-- Aquí resolvemos tu error actual
+    else:
+        return str(obj)  # fallback a string para cualquier otro tipo raro
 
 def convert_numpy(obj):
     if isinstance(obj, (np.integer, np.int64)): return int(obj)

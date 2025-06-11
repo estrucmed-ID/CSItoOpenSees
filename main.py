@@ -43,7 +43,8 @@ import modules.archetype as ach
 
 #%% ==> PARAMETROS DE ENTRADA
 
-project_name = 'PUERTO SERENO PLATAFORMA A'
+# project_name = 'PUERTO SERENO PLATAFORMA A'
+project_name = 'Edificio 31P'
 load_case = '(0) 1CM + 0.25CV'
 n_pint = 5
 shell_craking = 1
