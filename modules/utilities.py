@@ -168,31 +168,48 @@ def process_json_data(folder_data, file_name):
     
     return restored_data
 
-def make_serializable(obj):
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, dict):
-        return {k: make_serializable(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [make_serializable(i) for i in obj]
+def make_json_safe(obj):
+    if isinstance(obj, dict):
+        return {str(k): make_json_safe(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple, set)):
+        return [make_json_safe(v) for v in obj]
+    elif isinstance(obj, np.ndarray):
+        return make_json_safe(obj.tolist())
+    elif isinstance(obj, pd.DataFrame):
+        return make_json_safe(obj.to_dict(orient='records'))
+    elif isinstance(obj, pd.Series):
+        return make_json_safe(obj.tolist())
+    elif isinstance(obj, (np.generic,)):
+        return obj.item()
     else:
         return obj
     
 def conver_to_json(data,folder_data,file_name):
     
-    # # Convertir a JSON (string) por cada DataFrame    
-    # serializable_data = {k: safe_convert(v) for k, v in data.items()}
-    
-    # # Guardar como archivo .json
-    # output_path = os.path.join(folder_data, f'{file_name}.json')
-    
-    # with open(output_path, 'w') as f:
-    #     json.dump(serializable_data, f, indent=2, ensure_ascii=False) # default=convert_numpy)
-        
-    serializable_data = make_serializable(data)
+    serializable_data = make_json_safe(data)
+    os.makedirs(folder_data, exist_ok=True)
     output_path = os.path.join(folder_data, f'{file_name}.json')
+    
     with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(serializable_data, f, indent=2, ensure_ascii=False)
+        try:
+            json.dump(serializable_data, f, indent=2, ensure_ascii=False)
+        except TypeError as e:
+            print("❌ ERROR serializando:", e)
+            from pprint import pprint
+            # pprint(serializable_data)
+            raise
+        
+
+        
+        # # Convertir a JSON (string) por cada DataFrame    
+        # serializable_data = {k: safe_convert(v) for k, v in data.items()}
+        
+        # # Guardar como archivo .json
+        # output_path = os.path.join(folder_data, f'{file_name}.json')
+        
+        # with open(output_path, 'w') as f:
+        #     json.dump(serializable_data, f, indent=2, ensure_ascii=False) # default=convert_numpy)
+        
         
     # # Asegurar que los datos son serializables
     # safe_data = make_json_safe(data)
@@ -214,39 +231,39 @@ def safe_convert(v):
             return make_json_safe(v)
             
         
-def make_json_safe(obj, seen=None):
+# def make_json_safe(obj, seen=None):
 
-    # if seen is None:
-    #     seen = set()
-    # obj_id = id(obj)
+#     # if seen is None:
+#     #     seen = set()
+#     # obj_id = id(obj)
 
-    # if obj_id in seen:
-    #     return None  # Evita referencias circulares
+#     # if obj_id in seen:
+#     #     return None  # Evita referencias circulares
 
-    # seen.add(obj_id)
+#     # seen.add(obj_id)
 
-    if isinstance(obj, dict):
-        return {str(k): make_json_safe(v, seen) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [make_json_safe(i, seen) for i in obj]
-    elif isinstance(obj, tuple):
-        return [make_json_safe(i, seen) for i in obj]
-    elif isinstance(obj, set):
-        return [make_json_safe(i, seen) for i in obj]
-    elif isinstance(obj, (np.integer, int)):
-        return int(obj)
-    elif isinstance(obj, (np.floating, float)):
-        return float(obj)
-    elif isinstance(obj, (np.bool_, bool)):
-        return bool(obj)
-    elif isinstance(obj, (np.ndarray,)):
-        return obj.tolist()
-    elif obj is None or (isinstance(obj, float) and pd.isna(obj)):
-        return None
-    elif isinstance(obj, (datetime.datetime, datetime.date, pd.Timestamp)):
-        return str(obj)  # <-- Aquí resolvemos tu error actual
-    else:
-        return str(obj)  # fallback a string para cualquier otro tipo raro
+#     if isinstance(obj, dict):
+#         return {str(k): make_json_safe(v, seen) for k, v in obj.items()}
+#     elif isinstance(obj, list):
+#         return [make_json_safe(i, seen) for i in obj]
+#     elif isinstance(obj, tuple):
+#         return [make_json_safe(i, seen) for i in obj]
+#     elif isinstance(obj, set):
+#         return [make_json_safe(i, seen) for i in obj]
+#     elif isinstance(obj, (np.integer, int)):
+#         return int(obj)
+#     elif isinstance(obj, (np.floating, float)):
+#         return float(obj)
+#     elif isinstance(obj, (np.bool_, bool)):
+#         return bool(obj)
+#     elif isinstance(obj, (np.ndarray,)):
+#         return obj.tolist()
+#     elif obj is None or (isinstance(obj, float) and pd.isna(obj)):
+#         return None
+#     elif isinstance(obj, (datetime.datetime, datetime.date, pd.Timestamp)):
+#         return str(obj)  # <-- Aquí resolvemos tu error actual
+#     else:
+#         return str(obj)  # fallback a string para cualquier otro tipo raro
 
 def convert_numpy(obj):
     if isinstance(obj, (np.integer, np.int64)): return int(obj)

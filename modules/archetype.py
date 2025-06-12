@@ -1634,68 +1634,68 @@ class ModelBuilder:
         
     # Performs modal analysis
     @staticmethod
-    def modal_analysis(elastic_model):
-        """
-        Performs modal analysis of the structure using OpenSeesPy.
+    # def modal_analysis(elastic_model):
+    #     """
+    #     Performs modal analysis of the structure using OpenSeesPy.
     
-        This function:
-        - Calculates eigenvalues for a number of modes equal to 3 times the number of floors.
-        - Calls OpenSees’ `modalProperties()` to extract results and optionally write them to file.
+    #     This function:
+    #     - Calculates eigenvalues for a number of modes equal to 3 times the number of floors.
+    #     - Calls OpenSees’ `modalProperties()` to extract results and optionally write them to file.
     
-        Returns:
-            None. Stores results in self.eigenvalues and self.modal_results.
-        """
+    #     Returns:
+    #         None. Stores results in self.eigenvalues and self.modal_results.
+    #     """
     
-        # Number of modes = 3 per floor (Ux, Uy, Rotation)
-        Nmodes = len(elastic_model.altur) * 3
+    #     # Number of modes = 3 per floor (Ux, Uy, Rotation)
+    #     Nmodes = len(elastic_model.altur) * 3
     
-        # Perform eigenvalue analysis
-        # ops.eigen('fullGenLapack', Nmodes)
-        # ops.eigen(Nmodes)
-        ops.eigen(10)
+    #     # Perform eigenvalue analysis
+    #     # ops.eigen('fullGenLapack', Nmodes)
+    #     # ops.eigen(Nmodes)
+    #     ops.eigen(10)
     
-        # Save modal properties to file
-        modal_results = ops.modalProperties('-return', '-unorm')
+    #     # Save modal properties to file
+    #     modal_results = ops.modalProperties('-return', '-unorm')
         
-        return modal_results
+    #     return modal_results
     
     @staticmethod
-    def save_modal_results(folder_path, model_type):
-        """
-        """
-        ops.modalProperties('-print', '-file', os.path.join(folder_path, f'Modal_Report_{model_type}.txt'), '-unorm')
+    # def save_modal_results(folder_path, model_type):
+    #     """
+    #     """
+        # ops.modalProperties('-print', '-file', os.path.join(folder_path, f'Modal_Report_{model_type}.txt'), '-unorm')
     
     
     @staticmethod
-    def modal_results_table(modal_results):
+    # def modal_results_table(modal_results):
         
-        def sums(key:str):
-            sumux = 0
-            sumux_list = []
-            for modal in list(modal_results.get(key)):
-                sumux += modal 
-                sumux_list.append(sumux)    
+    #     def sums(key:str):
+    #         sumux = 0
+    #         sumux_list = []
+    #         for modal in list(modal_results.get(key)):
+    #             sumux += modal 
+    #             sumux_list.append(sumux)    
             
-            return sumux_list
+    #         return sumux_list
         
-        dict_results = {
-            'Mode': range(1, len(modal_results.get('eigenPeriod'))+1),
-            'Period [sec]': modal_results.get('eigenPeriod'),
-            'UX [%]': modal_results.get('partiMassRatiosMX'),
-            'UY [%]': modal_results.get('partiMassRatiosMY'),
-            'UZ [%]': modal_results.get('partiMassRatiosMZ'),
-            'Sum UX [%]': sums('partiMassRatiosMX'),
-            'Sum UY [%]': sums('partiMassRatiosMY'),
-            'Sum UZ [%]': sums('partiMassRatiosMZ'),
-            'RX [%]': modal_results.get('partiMassRatiosRMX'),
-            'RY [%]': modal_results.get('partiMassRatiosRMY'),
-            'RZ [%]': modal_results.get('partiMassRatiosRMZ'),
-            'Sum RUX [%]': sums('partiMassRatiosRMX'),
-            'Sum RUY [%]': sums('partiMassRatiosRMY'),
-            'Sum RUZ [%]': sums('partiMassRatiosRMZ'),
-            }
+    #     dict_results = {
+    #         'Mode': range(1, len(modal_results.get('eigenPeriod'))+1),
+    #         'Period [sec]': modal_results.get('eigenPeriod'),
+    #         'UX [%]': modal_results.get('partiMassRatiosMX'),
+    #         'UY [%]': modal_results.get('partiMassRatiosMY'),
+    #         'UZ [%]': modal_results.get('partiMassRatiosMZ'),
+    #         'Sum UX [%]': sums('partiMassRatiosMX'),
+    #         'Sum UY [%]': sums('partiMassRatiosMY'),
+    #         'Sum UZ [%]': sums('partiMassRatiosMZ'),
+    #         'RX [%]': modal_results.get('partiMassRatiosRMX'),
+    #         'RY [%]': modal_results.get('partiMassRatiosRMY'),
+    #         'RZ [%]': modal_results.get('partiMassRatiosRMZ'),
+    #         'Sum RUX [%]': sums('partiMassRatiosRMX'),
+    #         'Sum RUY [%]': sums('partiMassRatiosRMY'),
+    #         'Sum RUZ [%]': sums('partiMassRatiosRMZ'),
+    #         }
             
-        return pd.DataFrame(dict_results)
+    #     return pd.DataFrame(dict_results)
     
     @staticmethod
     def column_forces_table(genframes, load_case):

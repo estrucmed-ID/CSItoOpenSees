@@ -71,22 +71,25 @@ def create_and_save_elastic_model(folder_data):
     data_dict = elastic_model.genInitialElasticModel(main_path, model_type = 'EM', 
                 load_case = load_case, npint = n_pint, shell_craking = shell_craking)
     
-    ut.conver_to_json(data_dict,folder_data,'elastic_model_information')
+    # ut.conver_to_json(data_dict,folder_data,'elastic_model_information')
     
     # Obtener resultados de analisis modal
-    modal_results = elastic_model.modal_analysis(elastic_model)
-    results_dict['modal_results_EM'] = elastic_model.modal_results_table(modal_results)
-    # Obtener vista en 3D del modelo
-    results_dict['fig_plot_model'] = elastic_model.plot_model()
-    # Obtener la carga distribuida en las vigas
-    results_dict['beam_loads']= data_dict.get('TABLE:  "DISTRIBUTED LOAD - BEAMS"')[['Story', 'Beam Label', 'Element Label', 'Floor Labels Matched',
-                                                                                      'Wcl', 'Wcv', 'Wv', 'Distributed force']]
-    results_dict['beam_loads'].rename(columns = {'Wcl':'WCL [kN]', 'Wcv':'WCV [kN]', 'Wv':'WV [kN]', 'Distributed force': 'WVT [kN]'}, inplace = True)
-    results_dict['fig_forces'] = elastic_model.frame_responses_plot()
+    # modal_results = elastic_model.modal_analysis(elastic_model)
+    # results_dict['modal_results_EM'] = elastic_model.modal_results_table(modal_results)
+
+    # # Obtener vista en 3D del modelo
+    # results_dict['fig_plot_model'] = elastic_model.plot_model()
+
+    # # Obtener la carga distribuida en las vigas
+    # results_dict['beam_loads']= data_dict.get('TABLE:  "DISTRIBUTED LOAD - BEAMS"')[['Story', 'Beam Label', 'Element Label', 'Floor Labels Matched',
+    #                                                                                   'Wcl', 'Wcv', 'Wv', 'Distributed force']]
+    # results_dict['beam_loads'].rename(columns = {'Wcl':'WCL [kN]', 'Wcv':'WCV [kN]', 'Wv':'WV [kN]', 'Distributed force': 'WVT [kN]'}, inplace = True)
+    # results_dict['fig_forces'] = elastic_model.frame_responses_plot()
+
     # Obtener fuerzas de las columnas
-    results_dict['column_forces_EM'] = elastic_model.column_forces_table(data_dict.get('TABLE:  "FRAME GENERATION"'), data_dict.get('load_case'))
-    # Obtener la deformada 
-    results_dict['fig_nodal_responses'], results_dict['fig_frame_responses'] = elastic_model.nodal_responses_plot()
+    # results_dict['column_forces_EM'] = elastic_model.column_forces_table(data_dict.get('TABLE:  "FRAME GENERATION"'), data_dict.get('load_case'))
+    # # Obtener la deformada 
+    # results_dict['fig_nodal_responses'], results_dict['fig_frame_responses'] = elastic_model.nodal_responses_plot()
     
 #%% ==> GENERAR AQUETIPO INELASTICO
 
@@ -98,14 +101,14 @@ def create_and_save_nonlinear_model(folder_data):
     data_dict = nonlinear_model.genInitialNONLinearModel(main_path, model_type = 'NLM', 
                 load_case = load_case, npint = n_pint, shell_craking = shell_craking, ed_type = ed_type)
 
-    ut.conver_to_json(data_dict,folder_data,'nonlinear_model_information')
+    # ut.conver_to_json(data_dict,folder_data,'nonlinear_model_information')
     
     # Obtener resultados de analisis modal
-    modal_results = nonlinear_model.modal_analysis(nonlinear_model)
-    results_dict['modal_results_NLM'] = nonlinear_model.modal_results_table(modal_results)
+    # modal_results = nonlinear_model.modal_analysis(nonlinear_model)
+    # results_dict['modal_results_NLM'] = nonlinear_model.modal_results_table(modal_results)
     
     # Obtener fuerzas de las columnas
-    results_dict['column_forces_NLM'] = nonlinear_model.column_forces_table(data_dict.get('TABLE:  "FRAME GENERATION"'), data_dict.get('load_case'))
+    # results_dict['column_forces_NLM'] = nonlinear_model.column_forces_table(data_dict.get('TABLE:  "FRAME GENERATION"'), data_dict.get('load_case'))
 
 def dataframe_modifications(df_em,df_nlm):
     df_em_renamed = df_em.rename(columns={
@@ -158,8 +161,8 @@ def main():
 folder_report = os.path.join(main_path, 'outputs', 'reports')
 if __name__ == "__main__":
     main()
-    results_dict['column_forces'] = dataframe_modifications(results_dict['column_forces_EM'], 
-                                                            results_dict['column_forces_NLM'])
+    # results_dict['column_forces'] = dataframe_modifications(results_dict['column_forces_EM'], 
+    #                                                         results_dict['column_forces_NLM'])
     
-    ut.conver_to_json(results_dict,folder_report,'archetype_results_report')
+    # ut.conver_to_json(results_dict,folder_report,'archetype_results_report')
 
